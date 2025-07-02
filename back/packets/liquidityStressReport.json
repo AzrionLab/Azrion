@@ -1,0 +1,25 @@
+{
+  "generatedAt": 1719810000000,
+  "chain": "solana",
+  "reportWindow": "",
+  "events": [
+    {
+      "token": "",
+      "timestamp": 1719807000000,
+      "liquidityBefore": 1200000,
+      "liquidityAfter": 850000,
+      "volumeDuring": 220000,
+      "pressureScore": 0.76,
+      "flagged": true
+    },
+    {
+      "token": "",
+      "timestamp": 1719808000000,
+      "liquidityBefore": 800000,
+      "liquidityAfter": 795000,
+      "volumeDuring": 12000,
+      "pressureScore": 0.12,
+      "flagged": false
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "scannedAt": 1719810200000,
+  "source": "azrion-agent",
+  "version": "1.1",
+  "traces": [
+    {
+      "wallet": "",
+      "startTime": 1719790000000,
+      "endTime": 1719810000000,
+      "txCount": 432,
+      "avgIntervalMs": 82000,
+      "totalVolume": 843200,
+      "protocolsUsed": [
+        "Raydium",
+        "Jupiter"
+      ],
+      "behaviorFlags": [
+        "burst-pattern",
+        "high-volume"
+      ]
+    },
+    {
+      "wallet": "",
+      "startTime": 1719780000000,
+      "endTime": 1719810000000,
+      "txCount": 45,
+      "avgIntervalMs": 280000,
+      "totalVolume": 54000,
+      "protocolsUsed": [
+        "Jupiter"
+      ],
+      "behaviorFlags": []
+    }
+  ]
+}
