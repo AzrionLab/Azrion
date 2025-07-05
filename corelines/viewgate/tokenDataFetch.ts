@@ -8,19 +8,41 @@ export interface TokenInfo {
 }
 
 export async function getTokenData(api: string, tokenAddress: string): Promise<TokenInfo> {
-  const res = await fetch(`${api}/token/${tokenAddress}`)
+  const url = `${api.replace(/\/$/, "")}/token/${tokenAddress}`
 
-  if (!res.ok) {
-    throw new Error(`Failed to retrieve token data: ${res.status}`)
+  let response: Response
+  try {
+    response = await fetch(url, { method: "GET" })
+  } catch (err) {
+    throw new Error(`Network error while fetching token data: ${err}`)
   }
 
-  const info = await res.json()
+  if (!response.ok) {
+    throw new Error(`API responded with status ${response.status}: ${response.statusText}`)
+  }
+
+  let data: any
+  try {
+    data = await response.json()
+  } catch (err) {
+    throw new Error("Invalid JSON response from token API")
+  }
+
+  if (
+    typeof data?.symbol !== "string" ||
+    typeof data?.price !== "number" ||
+    typeof data?.liquidity !== "number" ||
+    typeof data?.volume24h !== "number"
+  ) {
+    throw new Error("Malformed token data received from API")
+  }
+
   return {
-    symbol: info.symbol,
+    symbol: data.symbol,
     address: tokenAddress,
-    priceUSD: info.price,
-    liquidity: info.liquidity,
-    volume24h: info.volume24h,
+    priceUSD: data.price,
+    liquidity: data.liquidity,
+    volume24h: data.volume24h,
     lastUpdated: Date.now()
   }
 }
