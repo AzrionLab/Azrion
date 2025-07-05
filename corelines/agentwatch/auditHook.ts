@@ -4,24 +4,36 @@ import { auditTokenMeta } from "./azrionTokenAudit"
 
 export function useTokenMetadataAudit(metadata: TokenMetadata) {
   const [report, setReport] = useState<string[]>([])
-  const [isLoading, setIsLoading] = useState<boolean>(true)
+  const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
-    let mounted = true
-    setIsLoading(true)
+    let cancelled = false
 
-    const runAudit = () => {
-      const result = auditTokenMeta(metadata)
-      if (mounted) {
-        setReport(result)
-        setIsLoading(false)
+    const performAudit = async () => {
+      setIsLoading(true)
+
+      try {
+        // simulate async audit or replace with real async logic if needed
+        await new Promise(resolve => setTimeout(resolve, 300))
+        const result = auditTokenMeta(metadata)
+        if (!cancelled) {
+          setReport(result)
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setReport(["⚠️ Audit failed"])
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false)
+        }
       }
     }
 
-    setTimeout(runAudit, 300) // simulate async inspection
+    performAudit()
 
     return () => {
-      mounted = false
+      cancelled = true
     }
   }, [metadata])
 
