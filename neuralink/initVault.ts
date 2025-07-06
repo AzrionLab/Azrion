@@ -9,16 +9,29 @@ interface VaultInitParams {
 export function initVaultAction(params: VaultInitParams): string {
   const { creator, vaultId, createdAt } = params
 
-  if (!creator || !vaultId) {
-    return "Missing required vault initialization fields."
+  if (typeof creator !== "string" || creator.trim() === "") {
+    return "❌ Invalid or missing creator address."
   }
 
-  logVaultOperation({
-    type: "init",
-    vaultId,
-    actor: creator,
-    timestamp: createdAt
-  })
+  if (typeof vaultId !== "string" || vaultId.trim() === "") {
+    return "❌ Invalid or missing vault ID."
+  }
 
-  return `Vault ${vaultId} initialized by ${creator}`
+  if (typeof createdAt !== "number" || !Number.isFinite(createdAt) || createdAt <= 0) {
+    return "❌ Invalid timestamp for vault creation."
+  }
+
+  try {
+    logVaultOperation({
+      type: "init",
+      vaultId: vaultId.trim(),
+      actor: creator.trim(),
+      timestamp: createdAt
+    })
+
+    return `✅ Vault "${vaultId}" successfully initialized by ${creator}`
+  } catch (err: any) {
+    console.error("[Vault Init] Failed to log vault operation:", err)
+    return "❌ Vault initialized but failed to log operation."
+  }
 }
