@@ -1,4 +1,4 @@
-// azrion/config.ts
+
 
 /**
  * Default time interval between full blockchain scans
