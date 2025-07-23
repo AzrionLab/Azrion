@@ -1,4 +1,3 @@
-// azrion/watchstream/scanNewTokenMints.ts
 
 import { Connection, PublicKey, BlockResponse, ParsedInstruction } from "@solana/web3.js"
 
