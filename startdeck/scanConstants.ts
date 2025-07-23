@@ -1,9 +1,4 @@
 
-
-/**
- * Default time interval between full blockchain scans
- * (in milliseconds)
- */
 export const DEFAULT_SCAN_INTERVAL = 600_000  // 10 minutes
 
 /**
