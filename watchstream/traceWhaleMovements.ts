@@ -1,3 +1,5 @@
+// traceWhaleMovements.ts
+
 import pLimit from "p-limit"
 import { getWhaleWallets, fetchTransfers } from "@/utils/whaleTracker"
 import { WhaleMovement } from "@/types/watchstream"
@@ -20,6 +22,10 @@ export interface TraceReport {
   uniqueWalletCount: number
   /** The single largest movement observed (by `amount`) */
   peakMovement: WhaleMovement | null
+  /** Number of wallets that failed during fetch */
+  failedWalletCount: number
+  /** Addresses of wallets that failed */
+  failedWallets: string[]
   /** If `includeAll` was true, raw list of all fetched transfers */
   allMovements?: WhaleMovement[]
 }
@@ -29,18 +35,22 @@ export interface TraceReport {
  *
  * @param opts  Configuration for threshold, concurrency, and inclusion
  * @returns     Detailed report with filtered movements and summary stats
- * @throws      Error if fetching wallets fails
+ * @throws      Error if fetching wallets fails or invalid options
  */
 export async function traceWhaleMovements(
   opts: TraceOptions = {}
 ): Promise<TraceReport> {
-  const {
-    threshold = 50_000,
-    concurrency = 5,
-    includeAll = false,
-  } = opts
+  const threshold = opts.threshold ?? 50_000
+  const concurrency = opts.concurrency ?? 5
+  const includeAll = opts.includeAll ?? false
 
-  // 1. Retrieve the list of whale addresses
+  if (threshold <= 0) {
+    throw new RangeError(`threshold must be positive, got ${threshold}`)
+  }
+  if (concurrency < 1) {
+    throw new RangeError(`concurrency must be >= 1, got ${concurrency}`)
+  }
+
   let whaleAddresses: string[]
   try {
     whaleAddresses = await getWhaleWallets()
@@ -48,53 +58,56 @@ export async function traceWhaleMovements(
     throw new Error(`Failed to fetch whale wallets: ${err.message}`)
   }
 
-  // 2. Prepare concurrency limiter
   const limit = pLimit(concurrency)
   const allMovements: WhaleMovement[] = []
+  const failedWallets: string[] = []
 
-  // 3. Fetch transfers in parallel (limited) and collect movements
-  await Promise.all(
-    whaleAddresses.map(address =>
-      limit(async () => {
-        try {
-          const transfers = await fetchTransfers(address)
-          transfers.forEach(tx => {
-            const movement: WhaleMovement = {
-              wallet: address,
-              amount: tx.amount,
-              token: tx.tokenSymbol,
-              timestamp: tx.timestamp,
-              direction: tx.direction,
-            }
-            allMovements.push(movement)
+  // Fetch and collect movements with error tracking
+  const fetchPromises = whaleAddresses.map(address =>
+    limit(async () => {
+      try {
+        const transfers = await fetchTransfers(address)
+        transfers.forEach(tx =>
+          allMovements.push({
+            wallet: address,
+            amount: tx.amount,
+            token: tx.tokenSymbol,
+            timestamp: tx.timestamp,
+            direction: tx.direction,
           })
-        } catch {
-          // skip on fetch error for this wallet
-        }
-      })
-    )
+        )
+      } catch (err) {
+        failedWallets.push(address)
+        console.warn(
+          `traceWhaleMovements: failed to fetch ${address}: ${
+            (err as Error).message
+          }`
+        )
+      }
+    })
   )
 
-  // 4. Filter by threshold
-  const movements = allMovements.filter(mov => mov.amount >= threshold)
+  await Promise.all(fetchPromises)
 
-  // 5. Compute summary statistics
+  const movements = allMovements.filter(mov => mov.amount >= threshold)
+  movements.sort((a, b) => b.timestamp - a.timestamp)
+
   const totalMovements = movements.length
   const uniqueWalletCount = new Set(whaleAddresses).size
   const peakMovement = movements.reduce<WhaleMovement | null>(
-    (peak, curr) => (peak === null || curr.amount > peak.amount ? curr : peak),
+    (max, curr) => (max === null || curr.amount > max.amount ? curr : max),
     null
   )
-
-  // 6. Sort movements newest first
-  movements.sort((a, b) => b.timestamp - a.timestamp)
 
   const report: TraceReport = {
     movements,
     totalMovements,
     uniqueWalletCount,
     peakMovement,
+    failedWalletCount: failedWallets.length,
+    failedWallets,
   }
+
   if (includeAll) {
     report.allMovements = allMovements.sort((a, b) => b.timestamp - a.timestamp)
   }
